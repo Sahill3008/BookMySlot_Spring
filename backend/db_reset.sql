@@ -48,7 +48,3 @@ CREATE TABLE notifications (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_recipient FOREIGN KEY (recipient_id) REFERENCES users (id) ON DELETE CASCADE
 );
-
--- Optional: Insert a default Admin user (password: root => hashed)
--- You can verify the hash with: $2a$10$eD2.Xlq7z.zz/z.z.z.z.z.z.z.z.z.z.z.z.z.z
--- For now, manual insertion of users via your Registration API is recommended to ensure correct password hashing.

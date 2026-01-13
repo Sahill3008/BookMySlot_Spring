@@ -17,6 +17,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * AppointmentService: The Booking Engine
+ * 
+ * What it does:
+ * This handles the complexity of "Booking" a slot.
+ * It's responsible for concurrency checks (preventing double booking) and managing appointment lifecycles.
+ */
 @Service
 public class AppointmentService {
 
@@ -30,6 +37,19 @@ public class AppointmentService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Function: bookAppointment
+     * 
+     * 1. TRIGGER: Called by AppointmentController.bookAppointment()
+     * 
+     * 2. LOGIC (Critical):
+     *    - FETCH: Get the slot from DB. Lock it if possible (Optimistic Locking).
+     *    - CHECK: Is it already booked? If yes, ERROR.
+     *    - RESERVE: Set slot.isBooked = true.
+     *    - CREATE: Save a new Appointment entity linking Customer + Slot.
+     * 
+     * 3. OUTCOME: Slot is now taken. Appointment ID is returned.
+     */
     @Transactional
     public AppointmentResponse bookAppointment(Long customerId, Long slotId) {
         User customer = userRepository.findById(customerId)
@@ -58,10 +78,22 @@ public class AppointmentService {
                 .build();
 
         Appointment savedAppt = appointmentRepository.save(appointment);
-
-        return mapToResponse(savedAppt);
+        
+        return com.secure.appointment.util.DtoMapper.toAppointmentResponse(savedAppt);
     }
 
+    /**
+     * Function: cancelAppointment
+     * 
+     * 1. TRIGGER: Customer cancels their own booking.
+     * 
+     * 2. LOGIC:
+     *    - Security: Ensure this appointment belongs to THIS customer.
+     *    - Status: Change Appointment status to CANCELLED.
+     *    - Slot: Set slot.isBooked = false (So someone else can book it again!).
+     * 
+     * 3. OUTCOME: Appointment is voided. Slot is free.
+     */
     @Transactional
     public void cancelAppointment(Long customerId, Long appointmentId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
@@ -86,28 +118,17 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
     }
 
+    /**
+     * Function: getMyAppointments
+     * 
+     * 1. TRIGGER: "My Appointments" page load.
+     * 
+     * 2. LOGIC: Fetch formatted list of appointments.
+     */
     @Transactional(readOnly = true)
     public List<AppointmentResponse> getMyAppointments(Long customerId) {
         return appointmentRepository.findByCustomerIdOrderByBookedAtDesc(customerId).stream()
-                .map(this::mapToResponse)
+                .map(com.secure.appointment.util.DtoMapper::toAppointmentResponse)
                 .collect(Collectors.toList());
-    }
-
-    private AppointmentResponse mapToResponse(Appointment appt) {
-        return AppointmentResponse.builder()
-                .id(appt.getId())
-                .bookedAt(appt.getBookedAt())
-                .status(appt.getStatus().name())
-                .customerName(appt.getCustomer().getName())
-                // Re-using TimeSlot mapping logic would be better if extracted to mapper, but
-                // doing inline for simplicity
-                .slot(TimeSlotResponse.builder()
-                        .id(appt.getSlot().getId())
-                        .startTime(appt.getSlot().getStartTime())
-                        .endTime(appt.getSlot().getEndTime())
-                        .providerName(appt.getSlot().getProvider().getName())
-                        .isBooked(appt.getSlot().isBooked())
-                        .build())
-                .build();
     }
 }

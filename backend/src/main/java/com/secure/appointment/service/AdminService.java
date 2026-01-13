@@ -12,6 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * AdminService: Administrative Logic
+ * 
+ * What it does:
+ * Handles high-level system operations like:
+ * - Viewing all system data (Global View).
+ * - User Management (Ban/Unban).
+ */
 @Service
 public class AdminService {
 
@@ -23,25 +31,28 @@ public class AdminService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Function: getAllAppointments
+     * 
+     * 1. TRIGGER: Admin Dashboard.
+     * 
+     * 2. LOGIC: findAll() fetches the entire table.
+     */
     @Transactional(readOnly = true)
     public List<AppointmentResponse> getAllAppointments() {
         return appointmentRepository.findAll().stream()
-                .map(appt -> AppointmentResponse.builder()
-                        .id(appt.getId())
-                        .bookedAt(appt.getBookedAt())
-                        .status(appt.getStatus().name())
-                        .customerName(appt.getCustomer().getName())
-                        .slot(TimeSlotResponse.builder()
-                                .id(appt.getSlot().getId())
-                                .startTime(appt.getSlot().getStartTime())
-                                .endTime(appt.getSlot().getEndTime())
-                                .providerName(appt.getSlot().getProvider().getName())
-                                .isBooked(appt.getSlot().isBooked())
-                                .build())
-                        .build())
+                .map(com.secure.appointment.util.DtoMapper::toAppointmentResponse)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Function: activateUser
+     * 
+     * 1. TRIGGER: Admin Action.
+     * 
+     * 2. LOGIC: Finds user and toggles their active flag.
+     *    This flag is checked during Login in 'loadUserByUsername'.
+     */
     @Transactional
     public void activateUser(Long userId) {
         User user = userRepository.findById(userId)
@@ -50,6 +61,13 @@ public class AdminService {
         userRepository.save(user);
     }
 
+    /**
+     * Function: deactivateUser
+     * 
+     * 1. TRIGGER: Admin Action.
+     * 
+     * 2. LOGIC: Sets user to inactive.
+     */
     @Transactional
     public void deactivateUser(Long userId) {
         User user = userRepository.findById(userId)

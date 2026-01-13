@@ -14,6 +14,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * TimeSlotService: Managing Provider Availability
+ * 
+ * What it does:
+ * This service handles everything related to "Time Slots".
+ * - Creating new slots (Providers).
+ * - Listing available slots (Customers).
+ * - Cancelling slots.
+ */
 @Service
 public class TimeSlotService {
 
@@ -31,6 +40,19 @@ public class TimeSlotService {
         this.notificationService = notificationService;
     }
 
+    /**
+     * Function: createSlot
+     * 
+     * 1. FRONTEND TRIGGER: Provider clicks "Add Slot" on Dashboard.
+     * 
+     * 2. LOGIC:
+     *    - Validates that Start Time is before End Time.
+     *    - Checks for OVERLAPS: A provider cannot work two jobs at the same time!
+     *      (It ignores previously cancelled slots).
+     *    - Saves a new TimeSlot to the database with isBooked = false.
+     * 
+     * 3. OUTCOME: New slot appears in the Provider's list and Customer's search list.
+     */
     @Transactional
     public TimeSlotResponse createSlot(Long providerId, TimeSlotRequest request) {
         if (request.getStartTime().isAfter(request.getEndTime())) {
@@ -55,24 +77,57 @@ public class TimeSlotService {
 
         TimeSlot savedSlot = timeSlotRepository.save(slot);
 
-        return mapToResponse(savedSlot);
+        return com.secure.appointment.util.DtoMapper.toTimeSlotResponse(savedSlot);
     }
 
+    /**
+     * Function: getProviderSlots
+     * 
+     * 1. FRONTEND TRIGGER: Provider logs in and views their Dashboard.
+     * 
+     * 2. LOGIC: Fetch all slots for this provider that are NOT cancelled.
+     */
     @Transactional(readOnly = true)
     public List<TimeSlotResponse> getProviderSlots(Long providerId) {
         return timeSlotRepository.findByProviderIdAndIsCancelledFalseOrderByStartTimeAsc(providerId).stream()
-                .map(this::mapToResponse)
+                .map(com.secure.appointment.util.DtoMapper::toTimeSlotResponse)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Function: getAvailableSlots
+     * 
+     * 1. FRONTEND TRIGGER: Customer lands on the Home Page.
+     * 
+     * 2. LOGIC:
+     *    - Fetch slots that are:
+     *      a. Not Booked (isBooked = false)
+     *      b. Not Cancelled (isCancelled = false)
+     *      c. In the Future (startTime > now)
+     */
     @Transactional(readOnly = true)
     public List<TimeSlotResponse> getAvailableSlots() {
         return timeSlotRepository.findByIsBookedFalseAndIsCancelledFalseAndStartTimeAfterOrderByStartTimeAsc(LocalDateTime.now())
                 .stream()
-                .map(this::mapToResponse)
+                .map(com.secure.appointment.util.DtoMapper::toTimeSlotResponse)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Function: cancelSlot
+     * 
+     * 1. FRONTEND TRIGGER: Provider clicks "Delete" on a slot.
+     * 
+     * 2. LOGIC:
+     *    - Security Check: Is this YOUR slot?
+     *    - IF BOOKED: 
+     *      a. Find the appointment.
+     *      b. Mark appointment as CANCELLED.
+     *      c. SEND NOTIFICATION to the Customer (via WebSocket).
+     *    - Mark slot as isCancelled = true.
+     * 
+     * 3. OUTCOME: Slot disappears from public view. Customer gets an alert.
+     */
     @Transactional
     public void cancelSlot(Long providerId, Long slotId) {
         TimeSlot slot = timeSlotRepository.findById(slotId)
@@ -104,15 +159,5 @@ public class TimeSlotService {
         slot.setCancelled(true);
         slot.setBooked(false); // Make sure it's not marked booked anymore
         timeSlotRepository.save(slot);
-    }
-
-    private TimeSlotResponse mapToResponse(TimeSlot slot) {
-        return TimeSlotResponse.builder()
-                .id(slot.getId())
-                .startTime(slot.getStartTime())
-                .endTime(slot.getEndTime())
-                .isBooked(slot.isBooked())
-                .providerName(slot.getProvider().getName())
-                .build();
     }
 }

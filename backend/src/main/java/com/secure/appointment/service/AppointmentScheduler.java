@@ -2,10 +2,8 @@ package com.secure.appointment.service;
 
 import com.secure.appointment.entity.Appointment;
 import com.secure.appointment.entity.AppointmentStatus;
-import com.secure.appointment.entity.Notification;
 import com.secure.appointment.entity.TimeSlot;
 import com.secure.appointment.repository.AppointmentRepository;
-import com.secure.appointment.repository.NotificationRepository;
 import com.secure.appointment.repository.TimeSlotRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
