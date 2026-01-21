@@ -63,6 +63,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Explicitly allow all OPTIONS requests
                         .requestMatchers("/api/slots/**").permitAll() // Allow public access to view slots
+
                         .requestMatchers("/ws/**").permitAll() // Allow WebSocket Handshake
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/provider/**").hasRole("PROVIDER")

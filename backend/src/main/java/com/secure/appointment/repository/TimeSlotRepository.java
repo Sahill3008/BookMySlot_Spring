@@ -16,8 +16,13 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
     // Find overlapping slots for validation
     // Find overlapping slots for validation
     // start < existingEnd AND end > existingStart AND isCancelled = false
+    // Find overlapping slots for validation
+    // start < existingEnd AND end > existingStart AND isCancelled = false
     boolean existsByProviderIdAndStartTimeLessThanAndEndTimeGreaterThanAndIsCancelledFalse(
             Long providerId, LocalDateTime endTime, LocalDateTime startTime);
+
+    // Find slot by provider and exact start time (active or cancelled)
+    java.util.Optional<TimeSlot> findByProviderIdAndStartTime(Long providerId, LocalDateTime startTime);
 
     // Find available slots for customers (future only, not cancelled)
     List<TimeSlot> findByIsBookedFalseAndIsCancelledFalseAndStartTimeAfterOrderByStartTimeAsc(LocalDateTime now);
@@ -25,4 +30,6 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("SELECT ts FROM TimeSlot ts WHERE ts.id = :id")
     java.util.Optional<TimeSlot> findByIdWithLock(@org.springframework.data.repository.query.Param("id") Long id);
+
+
 }

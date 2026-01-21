@@ -38,8 +38,10 @@ const NotificationListener = () => {
         // 2. WebSocket Connection
         // Pass token in query param for authentication
         const token = localStorage.getItem('token');
-        const socket = new SockJS('http://localhost:8080/ws?token=' + token);
-        const stompClient = Stomp.over(socket);
+
+        // Fix: Stomp.over takes a factory function in v5+
+        const stompClient = Stomp.over(() => new SockJS('http://localhost:8080/ws?token=' + token));
+
         stompClient.debug = () => { }; // Disable debug logs
 
         stompClient.connect({
@@ -63,7 +65,7 @@ const NotificationListener = () => {
 
         return () => {
             if (stompClientRef.current) {
-                stompClientRef.current.disconnect();
+                stompClientRef.current.deactivate(); // disconnect() is deprecated in v5
             }
         };
 

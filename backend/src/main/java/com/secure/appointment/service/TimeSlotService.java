@@ -67,15 +67,30 @@ public class TimeSlotService {
             throw new IllegalArgumentException("Time slot overlaps with an existing slot");
         }
 
-        TimeSlot slot = TimeSlot.builder()
-                .provider(provider)
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
-                .isBooked(false)
-                .isCancelled(false)
-                .build();
+        // Check if a slot with EXACT start time exists (active or cancelled) to avoid Unique Constraint violation
+        java.util.Optional<TimeSlot> existingSlotOpt = timeSlotRepository.findByProviderIdAndStartTime(providerId, request.getStartTime());
 
-        TimeSlot savedSlot = timeSlotRepository.save(slot);
+        TimeSlot savedSlot;
+        if (existingSlotOpt.isPresent()) {
+            TimeSlot existingSlot = existingSlotOpt.get();
+            if (!existingSlot.isCancelled()) {
+                throw new IllegalArgumentException("Time slot already exists");
+            }
+            // Reactivate the cancelled slot
+            existingSlot.setEndTime(request.getEndTime());
+            existingSlot.setCancelled(false);
+            existingSlot.setBooked(false);
+            savedSlot = timeSlotRepository.save(existingSlot);
+        } else {
+            TimeSlot slot = TimeSlot.builder()
+                    .provider(provider)
+                    .startTime(request.getStartTime())
+                    .endTime(request.getEndTime())
+                    .isBooked(false)
+                    .isCancelled(false)
+                    .build();
+            savedSlot = timeSlotRepository.save(slot);
+        }
 
         return com.secure.appointment.util.DtoMapper.toTimeSlotResponse(savedSlot);
     }
