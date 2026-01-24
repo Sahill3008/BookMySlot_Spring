@@ -26,6 +26,12 @@ public class TimeSlot {
     @Column(name = "is_booked", nullable = false)
     private boolean isBooked = false;
 
+    @Column(name = "capacity", nullable = false)
+    private int capacity = 1;
+
+    @Column(name = "booked_count", nullable = false)
+    private int bookedCount = 0;
+
     @Column(name = "is_cancelled")
     private Boolean isCancelled = false;
 
@@ -36,12 +42,14 @@ public class TimeSlot {
     public TimeSlot() {
     }
 
-    public TimeSlot(Long id, User provider, LocalDateTime startTime, LocalDateTime endTime, boolean isBooked, Long version) {
+    public TimeSlot(Long id, User provider, LocalDateTime startTime, LocalDateTime endTime, boolean isBooked, int capacity, int bookedCount, Long version) {
         this.id = id;
         this.provider = provider;
         this.startTime = startTime;
         this.endTime = endTime;
         this.isBooked = isBooked;
+        this.capacity = capacity;
+        this.bookedCount = bookedCount;
         this.version = version;
     }
 
@@ -101,6 +109,22 @@ public class TimeSlot {
         this.version = version;
     }
 
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(int capacity) {
+        this.capacity = capacity;
+    }
+
+    public int getBookedCount() {
+        return bookedCount;
+    }
+
+    public void setBookedCount(int bookedCount) {
+        this.bookedCount = bookedCount;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -111,6 +135,8 @@ public class TimeSlot {
         private LocalDateTime startTime;
         private LocalDateTime endTime;
         private boolean isBooked = false;
+        private int capacity = 1;
+        private int bookedCount = 0;
         private Boolean isCancelled = false;
         private Long version;
 
@@ -139,6 +165,16 @@ public class TimeSlot {
             return this;
         }
 
+        public Builder capacity(int capacity) {
+            this.capacity = capacity;
+            return this;
+        }
+
+        public Builder bookedCount(int bookedCount) {
+            this.bookedCount = bookedCount;
+            return this;
+        }
+
         public Builder isCancelled(boolean isCancelled) {
             this.isCancelled = isCancelled;
             return this;
@@ -150,7 +186,7 @@ public class TimeSlot {
         }
 
         public TimeSlot build() {
-            TimeSlot slot = new TimeSlot(id, provider, startTime, endTime, isBooked, version);
+            TimeSlot slot = new TimeSlot(id, provider, startTime, endTime, isBooked, capacity, bookedCount, version);
             slot.setCancelled(isCancelled);
             return slot;
         }

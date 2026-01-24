@@ -15,6 +15,8 @@ public class TimeSlotRequest {
     @Future
     private LocalDateTime endTime;
 
+    private Integer capacity;
+
     public LocalDateTime getStartTime() {
         return startTime;
     }
@@ -29,5 +31,13 @@ public class TimeSlotRequest {
 
     public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
+    }
+
+    public Integer getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
     }
 }

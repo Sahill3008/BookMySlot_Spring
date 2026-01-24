@@ -13,6 +13,8 @@ public class DtoMapper {
                 .startTime(slot.getStartTime())
                 .endTime(slot.getEndTime())
                 .isBooked(slot.isBooked())
+                .capacity(slot.getCapacity())
+                .bookedCount(slot.getBookedCount())
                 .providerName(slot.getProvider().getName())
                 .build();
     }

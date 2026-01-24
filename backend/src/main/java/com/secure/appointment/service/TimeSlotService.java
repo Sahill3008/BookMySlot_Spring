@@ -80,6 +80,8 @@ public class TimeSlotService {
             existingSlot.setEndTime(request.getEndTime());
             existingSlot.setCancelled(false);
             existingSlot.setBooked(false);
+            existingSlot.setCapacity(request.getCapacity() != null ? request.getCapacity() : 1);
+            existingSlot.setBookedCount(0);
             savedSlot = timeSlotRepository.save(existingSlot);
         } else {
             TimeSlot slot = TimeSlot.builder()
@@ -87,6 +89,8 @@ public class TimeSlotService {
                     .startTime(request.getStartTime())
                     .endTime(request.getEndTime())
                     .isBooked(false)
+                    .capacity(request.getCapacity() != null ? request.getCapacity() : 1)
+                    .bookedCount(0)
                     .isCancelled(false)
                     .build();
             savedSlot = timeSlotRepository.save(slot);
@@ -157,11 +161,11 @@ public class TimeSlotService {
         }
 
         // If booked, cancel the appointment and notify the customer
-        if (slot.isBooked()) {
-            com.secure.appointment.entity.Appointment appointment = appointmentRepository
-                    .findBySlotIdAndStatus(slotId, com.secure.appointment.entity.AppointmentStatus.BOOKED)
-                    .orElseThrow(() -> new RuntimeException("Slot is marked booked but no active appointment found"));
+        // Fetch all active appointments for this slot (could be multiple if capacity > 1)
+        List<com.secure.appointment.entity.Appointment> appointments = appointmentRepository
+                .findAllBySlotIdAndStatus(slotId, com.secure.appointment.entity.AppointmentStatus.BOOKED);
 
+        for (com.secure.appointment.entity.Appointment appointment : appointments) {
             appointment.setStatus(com.secure.appointment.entity.AppointmentStatus.CANCELLED);
             appointment.setCancelledAt(LocalDateTime.now());
             appointmentRepository.save(appointment);
@@ -173,6 +177,7 @@ public class TimeSlotService {
 
         slot.setCancelled(true);
         slot.setBooked(false); // Make sure it's not marked booked anymore
+        slot.setBookedCount(0); // Reset booking count
         timeSlotRepository.save(slot);
     }
 }

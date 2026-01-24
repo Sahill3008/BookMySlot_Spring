@@ -58,16 +58,19 @@ public class AppointmentService {
         TimeSlot slot = timeSlotRepository.findByIdWithLock(slotId)
                 .orElseThrow(() -> new RuntimeException("Time slot not found"));
 
-        // Explicit check before attempting write (fail fast)
-        if (slot.isBooked()) {
-            throw new RuntimeException("Slot is already booked");
+        // Check capacity
+        if (slot.getBookedCount() >= slot.getCapacity()) {
+            throw new RuntimeException("Slot is fully booked");
         }
 
-        // Optimistic Locking happens here:
-        // If another transaction modified this slot between read and write,
-        // JPA will throw ObjectOptimisticLockingFailureException upon transaction
-        // commit.
-        slot.setBooked(true);
+        // Increment booked count
+        slot.setBookedCount(slot.getBookedCount() + 1);
+
+        // Update isBooked flag if capacity reached
+        if (slot.getBookedCount() >= slot.getCapacity()) {
+            slot.setBooked(true);
+        }
+        
         timeSlotRepository.save(slot);
 
         Appointment appointment = Appointment.builder()
@@ -109,7 +112,8 @@ public class AppointmentService {
 
         // Free up the slot
         TimeSlot slot = appointment.getSlot();
-        slot.setBooked(false);
+        slot.setBookedCount(slot.getBookedCount() - 1);
+        slot.setBooked(false); // Make sure it's not marked as full anymore
         timeSlotRepository.save(slot);
 
         // Update appointment status

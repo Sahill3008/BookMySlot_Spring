@@ -5,9 +5,11 @@ import { toast } from 'react-toastify';
 
 const ProviderDashboard = () => {
     const [slots, setSlots] = useState([]);
+
     const [newSlot, setNewSlot] = useState({
         startTime: '',
-        endTime: ''
+        endTime: '',
+        capacity: 1
     });
 
     useEffect(() => {
@@ -28,10 +30,11 @@ const ProviderDashboard = () => {
         try {
             await api.post('/provider/slots', {
                 startTime: newSlot.startTime,
-                endTime: newSlot.endTime
+                endTime: newSlot.endTime,
+                capacity: newSlot.capacity
             });
             toast.success('Slot created successfully');
-            setNewSlot({ startTime: '', endTime: '' });
+            setNewSlot({ startTime: '', endTime: '', capacity: 1 });
             fetchMySlots();
         } catch (error) {
             toast.error('Failed to create slot: ' + (error.response?.data?.message || 'Error'));
@@ -68,6 +71,16 @@ const ProviderDashboard = () => {
                                 onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
                                 required
                             />
+                            <TextField
+                                label="Capacity"
+                                type="number"
+                                fullWidth
+                                margin="normal"
+                                value={newSlot.capacity}
+                                onChange={(e) => setNewSlot({ ...newSlot, capacity: parseInt(e.target.value) })}
+                                inputProps={{ min: 1 }}
+                                required
+                            />
                             <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
                                 Create Slot
                             </Button>
@@ -84,7 +97,8 @@ const ProviderDashboard = () => {
                                 <ListItem key={slot.id} divider>
                                     <ListItemText
                                         primary={`${new Date(slot.startTime).toLocaleString()} - ${new Date(slot.endTime).toLocaleTimeString()}`}
-                                        secondary={slot.isBooked ? "Status: BOOKED" : "Status: AVAILABLE"}
+
+                                        secondary={slot.isBooked ? "Status: FULL" : `Status: AVAILABLE (${slot.bookedCount}/${slot.capacity} booked)`}
                                     />
                                     <Button disabled={slot.isBooked} variant="outlined" size="small">
                                         {slot.isBooked ? 'View Booking' : 'Available'}

@@ -12,16 +12,20 @@ public class TimeSlotResponse {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private boolean isBooked;
+    private int capacity;
+    private int bookedCount;
     private String providerName;
 
     public TimeSlotResponse() {
     }
 
-    public TimeSlotResponse(Long id, LocalDateTime startTime, LocalDateTime endTime, boolean isBooked, String providerName) {
+    public TimeSlotResponse(Long id, LocalDateTime startTime, LocalDateTime endTime, boolean isBooked, int capacity, int bookedCount, String providerName) {
         this.id = id;
         this.startTime = startTime;
         this.endTime = endTime;
         this.isBooked = isBooked;
+        this.capacity = capacity;
+        this.bookedCount = bookedCount;
         this.providerName = providerName;
     }
 
@@ -57,6 +61,22 @@ public class TimeSlotResponse {
         isBooked = booked;
     }
 
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(int capacity) {
+        this.capacity = capacity;
+    }
+
+    public int getBookedCount() {
+        return bookedCount;
+    }
+
+    public void setBookedCount(int bookedCount) {
+        this.bookedCount = bookedCount;
+    }
+
     public String getProviderName() {
         return providerName;
     }
@@ -74,6 +94,8 @@ public class TimeSlotResponse {
         private LocalDateTime startTime;
         private LocalDateTime endTime;
         private boolean isBooked;
+        private int capacity;
+        private int bookedCount;
         private String providerName;
 
         public Builder id(Long id) {
@@ -96,13 +118,23 @@ public class TimeSlotResponse {
             return this;
         }
 
+        public Builder capacity(int capacity) {
+            this.capacity = capacity;
+            return this;
+        }
+
+        public Builder bookedCount(int bookedCount) {
+            this.bookedCount = bookedCount;
+            return this;
+        }
+
         public Builder providerName(String providerName) {
             this.providerName = providerName;
             return this;
         }
 
         public TimeSlotResponse build() {
-            return new TimeSlotResponse(id, startTime, endTime, isBooked, providerName);
+            return new TimeSlotResponse(id, startTime, endTime, isBooked, capacity, bookedCount, providerName);
         }
     }
 }

@@ -17,6 +17,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     // Find active appointment for a mobile slot
     // Find active appointment for a mobile slot
+    // Return List since multiple users can book the same slot now
+    List<Appointment> findAllBySlotIdAndStatus(Long slotId, com.secure.appointment.entity.AppointmentStatus status);
+
     java.util.Optional<Appointment> findBySlotIdAndStatus(Long slotId, com.secure.appointment.entity.AppointmentStatus status);
 
     // Find expired appointments

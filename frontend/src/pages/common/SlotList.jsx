@@ -111,6 +111,9 @@ const SlotList = () => {
                                     {new Date(slot.startTime).toLocaleString()} -
                                     {new Date(slot.endTime).toLocaleTimeString()}
                                 </Typography>
+                                <Typography variant="body2" color={slot.bookedCount >= slot.capacity ? 'error' : 'textSecondary'}>
+                                    Availability: {slot.capacity - slot.bookedCount} / {slot.capacity} spots left
+                                </Typography>
                                 <Button
                                     variant="contained"
                                     color="primary"
@@ -119,9 +122,9 @@ const SlotList = () => {
                                     onClick={() => handleBook(slot.id)}
                                     // Disable if user is a provider or not configured correctly, 
                                     // but let's stick to original logic:
-                                    disabled={!!user && user.role !== 'ROLE_CUSTOMER'}
+                                    disabled={(!!user && user.role !== 'ROLE_CUSTOMER') || slot.bookedCount >= slot.capacity}
                                 >
-                                    {user && user.role === 'ROLE_PROVIDER' ? 'Provider View' : 'Book Now'}
+                                    {slot.bookedCount >= slot.capacity ? 'Full' : (user && user.role === 'ROLE_PROVIDER' ? 'Provider View' : 'Book Now')}
                                 </Button>
                             </CardContent>
                         </Card>
@@ -129,7 +132,7 @@ const SlotList = () => {
                 ))}
                 {slots.length === 0 && <Typography>No slots available.</Typography>}
             </Grid>
-        </Container>
+        </Container >
     );
 };
 
