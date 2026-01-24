@@ -56,9 +56,38 @@ const ProviderDashboard = () => {
         }
     };
 
+    const handleExport = async (slotId) => {
+        try {
+            const response = await api.get(`/provider/slots/${slotId}/report`, { responseType: 'blob' });
+
+            let filename = 'Appointment_Report.xlsx';
+            const disposition = response.headers['content-disposition'];
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(disposition);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error(error);
+            toast.error('Export failed');
+        }
+    };
+
     return (
         <Container sx={{ mt: 4 }}>
-            <Typography variant="h4" gutterBottom>Provider Dashboard</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h4">Provider Dashboard</Typography>
+            </Box>
 
             <Grid container spacing={4}>
                 {/* Create Slot Form */}
@@ -106,11 +135,13 @@ const ProviderDashboard = () => {
                 {/* My Slots List */}
                 <Grid size={{ xs: 12, md: 8 }}>
                     <Paper sx={{ p: 2 }}>
-                        <Typography variant="h6">My Slots</Typography>
+                        <Typography variant="h6">My Schedule</Typography>
                         <List>
                             {slots.map((slot) => (
                                 <ListItem key={slot.id} divider>
                                     <ListItemText
+                                        primaryTypographyProps={{ component: 'div' }}
+                                        secondaryTypographyProps={{ component: 'div' }}
                                         primary={`${new Date(slot.startTime).toLocaleString()} - ${new Date(slot.endTime).toLocaleTimeString()}`}
                                         secondary={
                                             editingSlot && editingSlot.id === slot.id ? (
@@ -142,28 +173,34 @@ const ProviderDashboard = () => {
                                             )
                                         }
                                     />
-                                    <Button disabled={slot.isBooked} variant="outlined" size="small">
-                                        {slot.isBooked ? 'View Booking' : 'Available'}
-                                    </Button>
-                                    <Button
-                                        color="error"
-                                        variant="outlined"
-                                        size="small"
-                                        sx={{ ml: 2 }}
-                                        onClick={async () => {
-                                            if (window.confirm('Are you sure you want to delete this slot? If booked, the appointment will be cancelled.')) {
-                                                try {
-                                                    await api.delete(`/provider/slots/${slot.id}`);
-                                                    toast.success('Slot cancelled successfully');
-                                                    fetchMySlots();
-                                                } catch (error) {
-                                                    toast.error('Failed to cancel slot: ' + (error.response?.data?.message || 'Error'));
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => handleExport(slot.id)}
+                                            title="Download Excel Report"
+                                        >
+                                            📥 Export
+                                        </Button>
+                                        <Button
+                                            color="error"
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={async () => {
+                                                if (window.confirm('Are you sure you want to delete this slot? If booked, the appointment will be cancelled.')) {
+                                                    try {
+                                                        await api.delete(`/provider/slots/${slot.id}`);
+                                                        toast.success('Slot cancelled successfully');
+                                                        fetchMySlots();
+                                                    } catch (error) {
+                                                        toast.error('Failed to cancel slot: ' + (error.response?.data?.message || 'Error'));
+                                                    }
                                                 }
-                                            }
-                                        }}
-                                    >
-                                        Cancel
-                                    </Button>
+                                            }}
+                                        >
+                                            Cancel Slot
+                                        </Button>
+                                    </Box>
                                 </ListItem>
                             ))}
                             {slots.length === 0 && <Typography>No slots created yet.</Typography>}

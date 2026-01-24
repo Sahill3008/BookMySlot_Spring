@@ -1,0 +1,50 @@
+Feature List - Secure Booking Slot Management System
+======================================================
+Generated based on source code analysis.
+
+1. SECURITY
+------------------------------------------------------
+- **Authentication**: Stateless JWT (JSON Web Token) authentication mechanism.
+- **Authorization (RBAC)**: Role-Based Access Control implementation.
+  - Roles: ROLE_CUSTOMER, ROLE_PROVIDER, ROLE_ADMIN.
+  - Annotation-based control: `@PreAuthorize` or `requestMatchers` in `SecurityConfig`.
+- **Password Security**: BCrypt hashing for password storage (`BCryptPasswordEncoder`).
+- **CSRF**: Disabled (standard for stateless JWT APIs).
+- **CORS**: Configured via `CorsConfigurationSource` to allow specific origins (e.g., localhost:5173).
+  - Explicit handling of OPTIONS requests and `Content-Disposition` headers.
+- **Session Management**: Explicitly set to `STATELESS`.
+- **WebSockets Security**: Token-based authentication for WebSocket connections (implied by `auth` patterns).
+
+2. ARCHITECTURE (BACKEND)
+------------------------------------------------------
+- **Framework**: Spring Boot (Layered Architecture: Controller -> Service -> Repository).
+- **DTO Pattern**: Strict separation of Entities and APIs using Request/Response DTOs.
+- **Global Exception Handling**: Centralized error handling via `@ControllerAdvice` (`GlobalExceptionHandler`).
+- **Asynchronous Processing**: `@Async` enabled for non-blocking operations (e.g., Email Sending).
+- **WebSocket Support**: STOMP over SockJS for real-time notifications (`/ws` endpoint).
+- **Reporting**: Excel generation using Apache POI (`poi-ooxml`).
+
+3. DATABASE
+------------------------------------------------------
+- **Engine**: PostgreSQL.
+- **ORM**: Spring Data JPA / Hibernate.
+- **Transaction Management**: explicit `@Transactional` boundaries on Service methods.
+- **Concurrency Control**: 
+  - Optimistic/Pessimistic Locking strategy (preventing double-booking of slots).
+  - Validations to overlapping time slots.
+
+4. FRONTEND
+------------------------------------------------------
+- **Core**: React 18+ (Hooks functional components) built with Vite.
+- **UI Library**: Material UI (MUI) v6 with custom ThemeProvider and detailed styling system.
+- **Routing**: `react-router-dom` with `ProtectedRoute` wrappers for Role-based routing guard.
+- **State Management**: Context API (`AuthContext`) for global user session usage.
+- **Networking (Axios)**: 
+  - Centralized `api.js` instance.
+  - **Request Interceptor**: Auto-injects `Bearer` token.
+  - **Response Interceptor**: Auto-redirects to login on 401 Unauthorized exceptions.
+- **Real-time**: `sockjs-client` + `@stomp/stompjs` for listening to backend push notifications.
+
+5. EXTERNAL INTEGRATIONS
+------------------------------------------------------
+- **Email**: JavaMailSender (Gmail SMTP) integration for transactional emails (Booking/Cancellation).

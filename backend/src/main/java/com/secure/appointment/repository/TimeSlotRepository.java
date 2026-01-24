@@ -26,6 +26,9 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
 
     // Find available slots for customers (future only, not cancelled)
     List<TimeSlot> findByIsBookedFalseAndIsCancelledFalseAndStartTimeAfterOrderByStartTimeAsc(LocalDateTime now);
+    
+    // Available slots (Paginated)
+    org.springframework.data.domain.Page<TimeSlot> findByIsBookedFalseAndIsCancelledFalseAndStartTimeAfter(LocalDateTime now, org.springframework.data.domain.Pageable pageable);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("SELECT ts FROM TimeSlot ts WHERE ts.id = :id")

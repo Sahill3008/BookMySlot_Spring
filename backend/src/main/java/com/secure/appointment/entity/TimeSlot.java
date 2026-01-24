@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "time_slots", uniqueConstraints = {
         @UniqueConstraint(columnNames = { "provider_id", "start_time" })
+}, indexes = {
+        @Index(name = "idx_timeslot_starttime", columnList = "start_time")
 })
 public class TimeSlot {
 

@@ -21,13 +21,15 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/provider")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", exposedHeaders = "Content-Disposition", maxAge = 3600)
 public class ProviderController {
 
     private final TimeSlotService timeSlotService;
+    private final com.secure.appointment.service.ReportService reportService;
 
-    public ProviderController(TimeSlotService timeSlotService) {
+    public ProviderController(TimeSlotService timeSlotService, com.secure.appointment.service.ReportService reportService) {
         this.timeSlotService = timeSlotService;
+        this.reportService = reportService;
     }
 
     /**
@@ -92,5 +94,35 @@ public class ProviderController {
             throw new IllegalArgumentException("Capacity must be at least 1");
         }
         return ResponseEntity.ok(timeSlotService.updateSlotCapacity(userDetails.getId(), id, newCapacity));
+    }
+    
+    @GetMapping("/slots/{id}/report")
+    public ResponseEntity<org.springframework.core.io.InputStreamResource> exportAppointments(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) throws java.io.IOException {
+        
+        // Fetch slot details to generate filename (You might need to add this method to Service if not exists, 
+        // or just use a generic name for now if I can't easily fetch it. 
+        // User asked for "Appointment_starttime_endtime".
+        // I'll fetch valid slot first.)
+        TimeSlotResponse slot = timeSlotService.getSlotById(id);
+
+        java.io.ByteArrayInputStream in = reportService.generateAppointmentReport(id);
+        
+        // Format: Appointment_YYYY-MM-DD_HH-MM_to_HH-MM.xlsx
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm");
+        String filename = String.format("Appointment_%s_to_%s.xlsx", 
+                slot.getStartTime().format(formatter), 
+                slot.getEndTime().format(formatter));
+        
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=" + filename);
+        headers.add("Access-Control-Expose-Headers", "Content-Disposition");
+        
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .contentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(new org.springframework.core.io.InputStreamResource(in));
     }
 }

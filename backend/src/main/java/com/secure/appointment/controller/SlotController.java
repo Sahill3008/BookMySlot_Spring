@@ -37,7 +37,8 @@ public class SlotController {
      * 3. OUTCOME: Returns list of bookable slots.
      */
     @GetMapping
-    public ResponseEntity<List<TimeSlotResponse>> getAvailableSlots() {
-        return ResponseEntity.ok(timeSlotService.getAvailableSlots());
+    public ResponseEntity<org.springframework.data.domain.Page<TimeSlotResponse>> getAvailableSlots(
+            org.springframework.data.domain.Pageable pageable) {
+        return ResponseEntity.ok(timeSlotService.getAvailableSlots(pageable));
     }
 }

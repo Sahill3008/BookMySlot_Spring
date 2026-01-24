@@ -1,0 +1,74 @@
+PROJECT_ARCHITECTURE_DEEP_DIVE.txt
+==================================
+
+SECTION 1: THE FULL STACK BRIDGE
+--------------------------------------------------
+This section maps exactly how a user action travels from the browser to the database.
+
+1. **Viewing Slots (The "READ" Operation)**
+   - **User Action**: Opens the Home Page (`/`).
+   - **React Component**: `SlotList.jsx` mounts.
+   - **Hook Trigger**: `useEffect` runs `fetchSlots()`.
+   - **Axios Call**: `api.get('/slots')` (configured in `api.js` to hit `http://localhost:8080/api/slots`).
+   - **Spring Controller**: `TimeSlotController.java` -> method `getAllSlots()`.
+   - **Service Layer**: `TimeSlotService.getAvailableSlots()` is called.
+   - **Database Action**: `TimeSlotRepository.findByIsBookedFalse...` runs a SQL `SELECT` query.
+   - **Return Trip**: SQL Data -> Java Entity -> DTO (`TimeSlotResponse`) -> JSON -> React State (`setSlots`) -> UI Render.
+
+2. **Booking an Appointment (The "WRITE" Operation)**
+   - **User Action**: Clicks "Book Now" button on a card in `SlotList.jsx`.
+   - **React Logic**: `handleBook(slotId)` function is executed.
+   - **Axios Call**: `api.post('/appointments', { slotId })`.
+     - *Interceptor Note*: `api.js` automatically attaches the JWT Token from localStorage (`Authorization: Bearer xyz...`).
+   - **Spring Security Filter**: `JwtAuthTokenFilter` intercepts request, extracts token, verifies signature, and sets `SecurityContext` (User Identity).
+   - **Spring Controller**: `AppointmentController.bookAppointment()`.
+   - **Service Layer**: `AppointmentService.bookAppointment(userId, slotId)`.
+   - **Database Action**: 
+     - 1. `timeSlotRepository.findByIdWithLock(slotId)` (Selects row + Locks it).
+     - 2. `appointmentRepository.save(newAppointment)` (Inserts new row).
+     - 3. `timeSlotRepository.save(slot)` (Updates slot to `isBooked = true`).
+   - **Return Trip**: 200 OK Response -> Toast Notification "Booked successfully!" -> `fetchSlots()` refreshes the list.
+
+SECTION 2: FRONTEND STATE & LOGIC
+--------------------------------------------------
+1. **Local State (`useState`)**
+   - **`slots` (SlotList.jsx)**: Stores the array of slot objects fetched from the server.
+     - *Why?* React needs to know this data changes so it can re-render the grid.
+   - **`editingSlot` (ProviderDashboard.jsx)**: Stores the temporary state of the slot being edited (e.g., changing capacity).
+     - *Why?* We don't want to send a network request for every keystroke. We hold it locally until "Save" is clicked.
+
+2. **The "Why" of Hooks**
+   - **`useEffect(() => { fetchSlots() }, [])`**: 
+     - *Why?* The empty array `[]` means "Run this ONCE when the component loads". This is where we trigger the initial API call.
+   - **`useAuth()`**:
+     - *Why?* This custom hook gives any component access to the global User object (Name, Role). It prevents us from having to pass "props" down 10 levels deep.
+
+SECTION 3: BACKEND ARCHITECTURE
+--------------------------------------------------
+1. **The "Why" of Annotations**
+   - **`@Transactional`**: Found in `AppointmentService`.
+     - *Why?* If the code crashes *after* saving the Appointment but *before* updating the Slot status, the database would be corrupt. `@Transactional` ensures "All or Nothing". If one part fails, everything rolls back.
+   - **`@RequiredArgsConstructor` (Lombok)**:
+     - *Why?* It automatically writes the constructor for us, injecting dependencies like `AppointmentRepository`. It keeps the code clean.
+   - **`@Scheduled`**: Found in `AppointmentScheduler`.
+     - *Why?* Tells Spring to run this method automatically on a timer (every 60 seconds) to clean up expired bookings.
+
+2. **Logic Breakdown**
+   - **Double-Booking Prevention**:
+     - In `AppointmentService.bookAppointment`, we check `if (slot.getBookedCount() >= slot.getCapacity())`.
+     - *Crucially*, we use `findByIdWithLock` in the repository. This is a "Pessimistic Lock". It tells the database: "While I am reading this slot, DO NOT let anyone else write to it." regarding that specific row.
+
+SECTION 4: TECHNICAL DICTIONARY
+--------------------------------------------------
+1. **JWT (JSON Web Token)**: 
+   - *Simply Put*: A digital passport. When you log in, the server gives you a signed sticker (Token). You show this sticker with every request to prove who you are. The server doesn't need to remember you (Stateless), it just checks the signature.
+   
+2. **CORS (Cross-Origin Resource Sharing)**:
+   - *Simply Put*: A security guard in the browser. By default, it blocks your frontend (port 5173) from talking to your backend (port 8080) because they are different "Origins". We configured Spring Security to explicitly say "It's okay, let port 5173 inside."
+
+3. **DTO (Data Transfer Object)**:
+   - *Simply Put*: A delivery box. We don't send our raw Database Entities (which might contain passwords or internal flags) to the frontend. We repackage the data into a DTO (`TimeSlotResponse`) containing *only* what the user needs to see.
+
+4. **Optimistic vs Pessimistic Locking**:
+   - *Optimistic*: "I hope no one else changes this." (Uses a version number column).
+   - *Pessimistic*: "I 禁止 anyone else from touching this until I'm done." (Locks the DB row). We use Pessimistic Locking for booking to be extra safe.
