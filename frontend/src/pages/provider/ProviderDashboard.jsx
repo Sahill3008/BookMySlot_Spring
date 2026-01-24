@@ -11,6 +11,8 @@ const ProviderDashboard = () => {
         endTime: '',
         capacity: 1
     });
+    // Track which slot is being edited { id: null, capacity: 0 }
+    const [editingSlot, setEditingSlot] = useState(null);
 
     useEffect(() => {
         fetchMySlots();
@@ -38,6 +40,19 @@ const ProviderDashboard = () => {
             fetchMySlots();
         } catch (error) {
             toast.error('Failed to create slot: ' + (error.response?.data?.message || 'Error'));
+        }
+    };
+
+    const handleUpdateCapacity = async (slotId) => {
+        try {
+            await api.put(`/provider/slots/${slotId}/capacity`, {
+                capacity: editingSlot.capacity
+            });
+            toast.success('Capacity updated');
+            setEditingSlot(null);
+            fetchMySlots();
+        } catch (error) {
+            toast.error('Update failed: ' + (error.response?.data?.message || 'Error'));
         }
     };
 
@@ -97,8 +112,35 @@ const ProviderDashboard = () => {
                                 <ListItem key={slot.id} divider>
                                     <ListItemText
                                         primary={`${new Date(slot.startTime).toLocaleString()} - ${new Date(slot.endTime).toLocaleTimeString()}`}
-
-                                        secondary={slot.isBooked ? "Status: FULL" : `Status: AVAILABLE (${slot.bookedCount}/${slot.capacity} booked)`}
+                                        secondary={
+                                            editingSlot && editingSlot.id === slot.id ? (
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                                                    <TextField
+                                                        type="number"
+                                                        size="small"
+                                                        label="Capacity"
+                                                        value={editingSlot.capacity}
+                                                        onChange={(e) => setEditingSlot({ ...editingSlot, capacity: parseInt(e.target.value) })}
+                                                        inputProps={{ min: slot.bookedCount }} // Constraint based on booked count
+                                                        sx={{ width: 100, mr: 1 }}
+                                                    />
+                                                    <Button size="small" variant="contained" onClick={() => handleUpdateCapacity(slot.id)}>Save</Button>
+                                                    <Button size="small" onClick={() => setEditingSlot(null)}>Cancel</Button>
+                                                </Box>
+                                            ) : (
+                                                <Box>
+                                                    <Typography variant="body2">{slot.isBooked ? "Status: FULL" : `Status: AVAILABLE`}</Typography>
+                                                    <Typography variant="caption">Booked: {slot.bookedCount} / {slot.capacity}</Typography>
+                                                    <Button
+                                                        size="small"
+                                                        sx={{ ml: 1, minWidth: 0, p: 0.5 }}
+                                                        onClick={() => setEditingSlot({ id: slot.id, capacity: slot.capacity })}
+                                                    >
+                                                        ✏️
+                                                    </Button>
+                                                </Box>
+                                            )
+                                        }
                                     />
                                     <Button disabled={slot.isBooked} variant="outlined" size="small">
                                         {slot.isBooked ? 'View Booking' : 'Available'}

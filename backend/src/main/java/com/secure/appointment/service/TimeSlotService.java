@@ -180,4 +180,35 @@ public class TimeSlotService {
         slot.setBookedCount(0); // Reset booking count
         timeSlotRepository.save(slot);
     }
+
+    @Transactional
+    public TimeSlotResponse updateSlotCapacity(Long providerId, Long slotId, int newCapacity) {
+        TimeSlot slot = timeSlotRepository.findById(slotId)
+                .orElseThrow(() -> new RuntimeException("Time slot not found"));
+
+        if (!slot.getProvider().getId().equals(providerId)) {
+            throw new RuntimeException("You are not authorized to update this slot");
+        }
+
+        if (slot.isCancelled()) {
+            throw new RuntimeException("Cannot update a cancelled slot");
+        }
+
+        if (newCapacity < slot.getBookedCount()) {
+            throw new IllegalArgumentException("Cannot decrease capacity below current booked count (" + slot.getBookedCount() + ")");
+        }
+
+        slot.setCapacity(newCapacity);
+
+        // Update isBooked status based on new capacity
+        if (slot.getBookedCount() >= newCapacity) {
+            slot.setBooked(true);
+        } else {
+            // If we increased capacity, it might not be full anymore
+            slot.setBooked(false);
+        }
+
+        TimeSlot savedSlot = timeSlotRepository.save(slot);
+        return com.secure.appointment.util.DtoMapper.toTimeSlotResponse(savedSlot);
+    }
 }

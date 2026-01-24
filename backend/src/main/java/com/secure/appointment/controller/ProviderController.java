@@ -81,4 +81,16 @@ public class ProviderController {
         timeSlotService.cancelSlot(userDetails.getId(), id);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping("/slots/{id}/capacity")
+    public ResponseEntity<TimeSlotResponse> updateCapacity(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Integer> payload) {
+        Integer newCapacity = payload.get("capacity");
+        if (newCapacity == null || newCapacity < 1) {
+            throw new IllegalArgumentException("Capacity must be at least 1");
+        }
+        return ResponseEntity.ok(timeSlotService.updateSlotCapacity(userDetails.getId(), id, newCapacity));
+    }
 }
